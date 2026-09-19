@@ -154,15 +154,13 @@ def chat(request: ChatRequest, _: None = Depends(authenticate)) -> ApiResponse:
             "history": [],
             "created_id": str(uuid4()),
         }
-#       return ("reply", "Session created. Please send your message again.")
 
-        return ApiResponse(success=True, data={"session_id": request.session_id, "reply": "Session created. Please send your message again.", "turns": 0})
-#        return ApiResponse(success=True, data={"session_id": request.session_id, "reply": "Session created. Please send your message again."})
+#        return ApiResponse(success=True, data={"session_id": request.session_id, "reply": "Session created. Please send your message again.", "turns": 0})
+        return ApiResponse(success=True, data={"reply": "Session created. Please send your message again"})
 #        raise HTTPException(
 #            status_code=status.HTTP_404_NOT_FOUND,
 #            detail="Session not found. Call /open-session first.",
 #        )
-
 
     history = session["history"]
     system_prompt = str(session["system_prompt"])
