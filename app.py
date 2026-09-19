@@ -148,10 +148,18 @@ def open_session(request: OpenSessionRequest, _: None = Depends(authenticate)) -
 def chat(request: ChatRequest, _: None = Depends(authenticate)) -> ApiResponse:
     session = SESSIONS.get(request.session_id)
     if session is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Session not found. Call /open-session first.",
-        )
+        system_prompt = get_required_env("SYSTEM_PROMPT")
+        SESSIONS[request.session_id] = {
+            "system_prompt": system_prompt,
+            "history": [],
+            "created_id": str(uuid4()),
+        }
+        return ApiResponse(success=True, data={"session_id": request.session_id, "reply": "Session created. Please send your message again.", "turns": 0})
+#        raise HTTPException(
+#            status_code=status.HTTP_404_NOT_FOUND,
+#            detail="Session not found. Call /open-session first.",
+#        )
+
 
     history = session["history"]
     system_prompt = str(session["system_prompt"])
