@@ -6,14 +6,56 @@ from langchain_core.chat_history import InMemoryChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 import os
 
-app = FastAPI(title="LangChain Chatbot API")
+def is_opeanai_api_key_valid(api_key: str) -> bool:
+    """
+    Checks the validity of an OpenAI API key by making a request to list models.
+    Returns True if valid, False otherwise.
+    """
+    # Initialize the client with the provided key
+    client = OpenAI(api_key=api_key)
+   
+    try:
+        # Perform a lightweight request to verify the key
+        client.models.list()
+        return True
+    except openai.AuthenticationError:
+        # Specific error caught if the API key is incorrect or invalid
+        print("Error: Invalid Authentication. Please check your API key.")
+        return False
+    except openai.APIConnectionError:
+        # Caught if the client cannot connect to the server
+        print("Error: Could not connect to OpenAI servers.")
+        return False
+    except openai.OpenAIError as e:
+        # Fallback for any other OpenAI-specific exceptions
+        print(f"An OpenAI error occurred: {e}")
+        return False
 
-# 1. Initialize the LLM (Using OpenAI's GPT-4o-mini as an example)
-model = ChatOpenAI(model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"), temperature=0.7, openai_api_key=os.getenv("OPENAI_API_KEY"))
+#
+# Open System Prompt File and load the system prompt
+#
+file_path = "system_prompt.txt"
+if not os.path.exists(file_path):
+    raise FileNotFoundError(f"System prompt file '{file_path}' not found. Please create it with the desired system prompt.")
+with open("system_prompt.txt", "r") as f:
+    system_prompt = f.read().strip()    
+
+app = FastAPI(title="LangChain Chatbot API")
+openai_api_key = os.getenv("OPENAI_API_KEY")
+openai_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+# 1. Validate the OpenAI API key
+test_key = os.getenv("OPENAI_API_KEY")
+if is_openai_key_valid(test_key):
+    print("The API key is VALID.")
+else:
+    print("The API key is INVALID.")
+
+model = ChatOpenAI(model=openai_model, temperature=0.7, openai_api_key=openai_api_key)
 
 # 2. Design the Chat Prompt Template with a history placeholder
 prompt = ChatPromptTemplate.from_messages([
-    ("system", os.getenv("SYSTEM_PROMPT", "You are a helpful and polite AI chatbot assistant.")),
+    ("system", system_prompt),
     MessagesPlaceholder(variable_name="history"),
     ("human", "{input}")
 ])
