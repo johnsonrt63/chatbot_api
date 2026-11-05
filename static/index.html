@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chatbot</title>
+  <style>
+    :root {
+      --bg: #f3f1ec;
+      --bg-accent: #e7efe8;
+      --surface: #fffdf8;
+      --ink: #1c2420;
+      --muted: #5d6b64;
+      --line: #d5ddd7;
+      --accent: #1f6b4a;
+      --accent-hover: #17553a;
+      --user-bubble: #1f6b4a;
+      --bot-bubble: #eef3ef;
+      --danger: #8a2f2f;
+      --shadow: 0 10px 30px rgba(28, 36, 32, 0.08);
+      --radius: 16px;
+      --font: "IBM Plex Sans", "Segoe UI", sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: var(--font);
+      background:
+        radial-gradient(circle at top left, rgba(31, 107, 74, 0.12), transparent 40%),
+        linear-gradient(160deg, var(--bg), var(--bg-accent));
+    }
+
+    .shell {
+      width: min(920px, calc(100% - 1.5rem));
+      margin: 1rem auto 2rem;
+      display: grid;
+      gap: 1rem;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: clamp(1.6rem, 4vw, 2.1rem);
+      letter-spacing: -0.03em;
+    }
+
+    header p {
+      margin: 0.35rem 0 0;
+      color: var(--muted);
+      max-width: 36rem;
+      line-height: 1.45;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    details.settings {
+      padding: 0.85rem 1rem;
+    }
+
+    details.settings summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--accent);
+      list-style: none;
+    }
+
+    details.settings summary::-webkit-details-marker { display: none; }
+
+    .settings-grid {
+      display: grid;
+      gap: 0.85rem;
+      margin-top: 0.9rem;
+    }
+
+    label {
+      display: grid;
+      gap: 0.35rem;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0.7rem 0.8rem;
+      font: inherit;
+      color: var(--ink);
+      background: #fff;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 5rem;
+      line-height: 1.4;
+    }
+
+    .chat {
+      display: grid;
+      grid-template-rows: 1fr auto;
+      min-height: min(70vh, 720px);
+      overflow: hidden;
+    }
+
+    #messages {
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      background:
+        linear-gradient(180deg, rgba(255, 253, 248, 0.4), rgba(238, 243, 239, 0.55));
+    }
+
+    .empty {
+      margin: auto;
+      text-align: center;
+      color: var(--muted);
+      max-width: 22rem;
+      line-height: 1.5;
+    }
+
+    .msg {
+      max-width: min(85%, 42rem);
+      padding: 0.8rem 0.95rem;
+      border-radius: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      animation: rise 180ms ease-out;
+    }
+
+    .msg.user {
+      align-self: flex-end;
+      background: var(--user-bubble);
+      color: #f7fffb;
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg.bot {
+      align-self: flex-start;
+      background: var(--bot-bubble);
+      border: 1px solid var(--line);
+      border-bottom-left-radius: 4px;
+    }
+
+    .msg.error {
+      align-self: stretch;
+      background: #f8ecec;
+      color: var(--danger);
+      border: 1px solid #e4c4c4;
+    }
+
+    .composer {
+      display: grid;
+      gap: 0.75rem;
+      padding: 0.9rem;
+      border-top: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .composer-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.65rem;
+      align-items: end;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 0.75rem 1.2rem;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:hover { background: var(--accent-hover); }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .hint {
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 640px) {
+      .shell { width: calc(100% - 1rem); margin-top: 0.75rem; }
+      .composer-row { grid-template-columns: 1fr; }
+      button { width: 100%; }
+      .msg { max-width: 94%; }
+      .chat { min-height: 65vh; }
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div>
+        <h1>Chatbot</h1>
+        <p>Send a prompt and optionally override the system prompt used for this session.</p>
+      </div>
+      <div class="hint" id="authHint"></div>
+    </header>
+
+    <details class="panel settings" open>
+      <summary>Session &amp; system prompt</summary>
+      <div class="settings-grid">
+        <label>
+          Session ID
+          <input id="sessionId" type="text" value="web-session" autocomplete="off" />
+        </label>
+        <label id="apiKeyLabel" hidden>
+          API key (X-API-Key)
+          <input id="apiKey" type="password" autocomplete="off" placeholder="Required by this server" />
+        </label>
+        <label>
+          System prompt
+          <textarea id="systemPrompt" placeholder="Leave blank to use the server default from file/env"></textarea>
+        </label>
+        <p class="hint">A non-empty system prompt replaces the file/env default for this session and clears prior history when it changes.</p>
+      </div>
+    </details>
+
+    <section class="panel chat" aria-label="Chat">
+      <div id="messages">
+        <div class="empty" id="emptyState">Your conversation will appear here. Enter a message below to begin.</div>
+      </div>
+      <form class="composer" id="chatForm">
+        <label for="message">Message</label>
+        <div class="composer-row">
+          <textarea id="message" rows="3" required placeholder="Ask something…"></textarea>
+          <button type="submit" id="sendBtn">Send</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <script>
+    const messagesEl = document.getElementById("messages");
+    const emptyState = document.getElementById("emptyState");
+    const form = document.getElementById("chatForm");
+    const messageEl = document.getElementById("message");
+    const sendBtn = document.getElementById("sendBtn");
+    const sessionIdEl = document.getElementById("sessionId");
+    const systemPromptEl = document.getElementById("systemPrompt");
+    const apiKeyEl = document.getElementById("apiKey");
+    const apiKeyLabel = document.getElementById("apiKeyLabel");
+    const authHint = document.getElementById("authHint");
+
+    function appendMessage(role, text) {
+      if (emptyState) emptyState.remove();
+      const bubble = document.createElement("div");
+      bubble.className = `msg ${role}`;
+      bubble.textContent = text;
+      messagesEl.appendChild(bubble);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    async function loadConfig() {
+      try {
+        const res = await fetch("/config");
+        const data = await res.json();
+        if (data.default_system_prompt && !systemPromptEl.value) {
+          systemPromptEl.placeholder = data.default_system_prompt;
+        }
+        if (data.auth_required) {
+          apiKeyLabel.hidden = false;
+          authHint.textContent = "API key required";
+        } else {
+          authHint.textContent = "No API key required";
+        }
+      } catch (err) {
+        authHint.textContent = "Could not load /config";
+      }
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const message = messageEl.value.trim();
+      const sessionId = sessionIdEl.value.trim() || "web-session";
+      const systemPrompt = systemPromptEl.value.trim();
+      if (!message) return;
+
+      appendMessage("user", message);
+      messageEl.value = "";
+      sendBtn.disabled = true;
+      sendBtn.textContent = "Thinking…";
+
+      const headers = { "Content-Type": "application/json" };
+      if (apiKeyEl.value.trim()) {
+        headers["X-API-Key"] = apiKeyEl.value.trim();
+      }
+
+      const body = { session_id: sessionId, message };
+      // When set, override the file/env system prompt for this session.
+      if (systemPrompt) {
+        body.system_prompt = systemPrompt;
+      }
+
+      try {
+        const res = await fetch("/chat", {
+          method: "POST",
+          headers,
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const detail = data.detail || data.error || res.statusText || "Request failed";
+          appendMessage("error", typeof detail === "string" ? detail : JSON.stringify(detail));
+        } else {
+          appendMessage("bot", data.reply || "(empty reply)");
+        }
+      } catch (err) {
+        appendMessage("error", err.message || "Network error");
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = "Send";
+        messageEl.focus();
+      }
+    });
+
+    messageEl.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        form.requestSubmit();
+      }
+    });
+
+    loadConfig();
+  </script>
+</body>
+</html>
